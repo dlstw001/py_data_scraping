@@ -3,9 +3,12 @@ from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
 import time
 import tldextract
+import redis
+
 
 
 # Setting
+client = redis.Redis(host='localhost', port=6379, db=0)
 opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
 s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe')

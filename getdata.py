@@ -1,15 +1,12 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
-import time
-import tldextract
-import html2text
+import time # Set time interval
+import tldextract # Get domain
+import string
 
 
 # Setting
-text_maker = html2text.HTML2Text()
-text_maker.ignore_links = True
-text_maker.ignore_images = True
 opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
 s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe')
@@ -35,5 +32,7 @@ for link in global_link_lst:
     # Make BeautifulSoup
     content = driver.page_source
     soup = BeautifulSoup(content, 'lxml')
-    text = html2text.html2text(soup.prettify())
-    print(text)
+    content = soup.text.translate({ord(c): None for c in string.whitespace})
+    with open('content.txt', "w", encoding="utf-8") as f:
+        f.write(content)
+

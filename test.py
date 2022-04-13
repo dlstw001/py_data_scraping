@@ -5,7 +5,9 @@ from bs4 import BeautifulSoup
 import time # Set time interval
 import tldextract # Get domain
 import string # Reduce whitespaces
+from urllib.parse import urlparse # Get path
 import redis # Caching
+from pymongo import MongoClient
 
 # Setting
 redisClient = redis.Redis(host='localhost', port=6379, db=0)
@@ -13,7 +15,10 @@ opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
 s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe')
 global_link_lst = ["https://www.ctonet.mx/"]
+keywords = ['peplink','Peplink','SD-WAN','WIFI']
 driver = webdriver.Chrome(service=s, options=opts)
+cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
+client = MongoClient(cluster)
 
 
 # Function
@@ -47,41 +52,51 @@ def getlink(soup):
             local_link_lst.append(link)
 
 
-# Main Function
+# Main Script
 for g_link in global_link_lst:
     # Setting
     local_link_lst = []
+    local_link_lst.append(g_link)
     domain = tldextract.extract(g_link).domain
-    driver.get(g_link)
-    # Scroll down & Make soup
-    g_soup = getsoup()
-    # Get links from global
-    getlink(g_soup)
 
     # Loop through local name list
     for l_link in local_link_lst:
         try:
+            key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
+            link_check = redisClient.hget(key, "link")
             driver.get(l_link)
             # Scroll down & Make soup
-            l_soup = getsoup()
-            # Get links from local
-            getlink(l_soup)
-            # Get all the content and push to redis
-            l_text = l_soup.text.translate({ord(c): None for c in string.whitespace})
-            key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
-            redisClient.hset(key, "link", l_link)
-            redisClient.hset(key, "content", l_text)
-            print(f'{key}: successful')
+            soup = getsoup()
+            # Get links from soup
+            getlink(soup)
+
+            # Check repeated data
+            if link_check == None:
+                # Get Data and submit to redis
+                content = soup.text.translate({ord(c): None for c in string.whitespace})
+                redisClient.hset(key, "link", l_link)
+                redisClient.hset(key, "content", content)
+                # Get matches and submit to db
+                path = urlparse(l_link).path
+                db = client.data
+                data = db.match
+                result = {}
+                for word in keywords:
+                    count = content.count(word)
+                    if count > 0:
+                        result[word] = count
+                match = {'link': l_link, 'domain': domain, 'path': path, 'result': result}
+                data.insert_one(match)
+
+                print('All data submitted')
+            else:
+                print('Data already existed')
+
         except WebDriverException:
             print(f'{key}, {l_link}: failed')
             continue
 
 print('Finished')
-
-
-
-
-
 
 
 

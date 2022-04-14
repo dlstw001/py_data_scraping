@@ -9,7 +9,6 @@ from urllib.parse import urlparse # Get path
 import redis # Caching
 from pymongo import MongoClient
 
-# Setting
 redisClient = redis.Redis(host='localhost', port=6379, db=0)
 opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
@@ -20,7 +19,8 @@ driver = webdriver.Chrome(service=s, options=opts)
 cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
 client = MongoClient(cluster)
 
-def get_all(global_link_lst):
+
+def get_all():
     # Main Script
     for g_link in global_link_lst:
         # Setting

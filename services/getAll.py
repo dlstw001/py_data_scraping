@@ -9,6 +9,7 @@ from urllib.parse import urlparse # Get path
 import redis # Caching
 from pymongo import MongoClient
 
+# Settings
 redisClient = redis.Redis(host='localhost', port=6379, db=0)
 opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
@@ -19,20 +20,17 @@ driver = webdriver.Chrome(service=s, options=opts)
 cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
 client = MongoClient(cluster)
 
-
 def get_all():
     # Main Script
     for g_link in global_link_lst:
-        # Setting
+        # Create local list for iteration
         local_link_lst = []
         local_link_lst.append(g_link)
         domain = tldextract.extract(g_link).domain
 
-        # Loop through local name list
+        # Loop through local list
         for l_link in local_link_lst:
-            try:
-                key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
-                link_check = redisClient.hget(key, "link")
+            try:              
                 driver.get(l_link)
 
                 # Scroll down & Make soup
@@ -54,19 +52,21 @@ def get_all():
                 # Get links from soup
                 for element in soup.findAll('a', href=True):
                     link = str(element.get('href'))
-                    check = tldextract.extract(link).domain
+                    doamin_check = tldextract.extract(link).domain
                     if (link.startswith('http://') or link.startswith('https://')) and \
-                            (domain == check) and (link not in local_link_lst):
+                            (domain == doamin_check) and (link not in local_link_lst):
                         local_link_lst.append(link)
 
                 # Check repeated data
+                key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
+                link_check = redisClient.hget(key, "link")
                 if link_check == None:
-                    # Get Data and submit to redis
+                    # Get data and submit to redis
                     content = soup.text.translate({ord(c): None for c in string.whitespace})
                     redisClient.hset(key, "link", l_link)
                     redisClient.hset(key, "content", content)
                     redisClient.expire(key, 28800)
-                    # Get matches and submit to db
+                    # Get matches and submit to mongodb
                     path = urlparse(l_link).path
                     db = client.data
                     data = db.match

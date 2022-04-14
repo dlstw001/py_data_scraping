@@ -21,37 +21,6 @@ cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
 client = MongoClient(cluster)
 
 
-# Function
-def getsoup():
-    time.sleep(2)
-    # Get scroll height.
-    last_height = driver.execute_script("return document.body.scrollHeight")
-
-    while True:
-        # Scroll down to the bottom.
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        # Wait to load the page.
-        time.sleep(2)
-        # Calculate new scroll height and compare with last scroll height.
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-
-    content = driver.page_source
-    soup = BeautifulSoup(content, 'lxml')
-    return soup
-
-
-def getlink(soup):
-    for element in soup.findAll('a', href=True):
-        link = str(element.get('href'))
-        check = tldextract.extract(link).domain
-        if (link.startswith('http://') or link.startswith('https://')) and \
-                (domain == check) and (link not in local_link_lst):
-            local_link_lst.append(link)
-
-
 # Main Script
 for g_link in global_link_lst:
     # Setting
@@ -65,10 +34,30 @@ for g_link in global_link_lst:
             key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
             link_check = redisClient.hget(key, "link")
             driver.get(l_link)
+
             # Scroll down & Make soup
-            soup = getsoup()
+            time.sleep(2)
+            last_height = driver.execute_script("return document.body.scrollHeight")
+            while True:
+                # Scroll down to the bottom.
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                # Wait to load the page.
+                time.sleep(2)
+                # Calculate new scroll height and compare with last scroll height.
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+            content = driver.page_source
+            soup = BeautifulSoup(content, 'lxml')
+
             # Get links from soup
-            getlink(soup)
+            for element in soup.findAll('a', href=True):
+                link = str(element.get('href'))
+                check = tldextract.extract(link).domain
+                if (link.startswith('http://') or link.startswith('https://')) and \
+                        (domain == check) and (link not in local_link_lst):
+                    local_link_lst.append(link)
 
             # Check repeated data
             if link_check == None:
@@ -87,7 +76,6 @@ for g_link in global_link_lst:
                         result[word] = count
                 match = {'link': l_link, 'domain': domain, 'path': path, 'result': result}
                 data.insert_one(match)
-
                 print('All data submitted')
             else:
                 print('Data already existed')
@@ -95,8 +83,6 @@ for g_link in global_link_lst:
         except WebDriverException:
             print(f'{key}, {l_link}: failed')
             continue
-
-print('Finished')
 
 
 

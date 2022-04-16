@@ -9,18 +9,20 @@ from urllib.parse import urlparse # Get path
 import redis # Caching
 from pymongo import MongoClient
 
-# Settings
-redisClient = redis.Redis(host='localhost', port=6379, db=0)
-opts = webdriver.ChromeOptions()
-opts.add_argument("--disable-notifications, --headless")
-s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe')
-global_link_lst = ["https://www.ctonet.mx/"]
-keywords = ['peplink','Peplink','SD-WAN','WIFI']
-driver = webdriver.Chrome(service=s, options=opts)
-cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
-client = MongoClient(cluster)
+def get_all(global_Link_lst, keywords):
+    # Settings
+    redisClient = redis.Redis(host='localhost', port=6379, db=0)
+    opts = webdriver.ChromeOptions()
+    opts.add_argument("--disable-notifications, --headless")
+    s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe') # Browser driver location
 
-def get_all():
+    """ global_link_lst = ["https://www.ctonet.mx/"]
+    keywords = ['peplink','Peplink','SD-WAN','WIFI'] """
+    
+    driver = webdriver.Chrome(service=s, options=opts)
+    cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
+    client = MongoClient(cluster)
+
     # Main Script
     for g_link in global_link_lst:
         # Create local list for iteration

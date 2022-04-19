@@ -7,22 +7,24 @@ import tldextract # Get domain
 import string # Reduce whitespaces
 from urllib.parse import urlparse # Get path
 import redis # Caching
-from pymongo import MongoClient
+from pymongo import MongoClient # Main DB
+from multiprocessing import Pool # Multiprocessing
 
-def get_all(global_Link_lst, keywords):
-    # Settings
-    redisClient = redis.Redis(host='localhost', port=6379, db=0)
-    opts = webdriver.ChromeOptions()
-    opts.add_argument("--disable-notifications, --headless")
-    s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe') # Browser driver location
 
-    """ global_link_lst = ["https://www.ctonet.mx/"]
-    keywords = ['peplink','Peplink','SD-WAN','WIFI'] """
-    
-    driver = webdriver.Chrome(service=s, options=opts)
-    cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
-    client = MongoClient(cluster)
+redisClient = redis.Redis(host='localhost', port=6379, db=0)
+opts = webdriver.ChromeOptions()
+opts.add_argument("--disable-notifications, --headless")
+s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe') # Browser driver location
 
+global_link_lst = ["https://www.ctonet.mx/"]
+keywords = ['peplink','Peplink','SD-WAN','WIFI']
+
+driver = webdriver.Chrome(service=s, options=opts)
+cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
+client = MongoClient(cluster)
+
+
+def get_all():
     # Main Script
     for g_link in global_link_lst:
         # Create local list for iteration
@@ -68,7 +70,7 @@ def get_all(global_Link_lst, keywords):
                     redisClient.hset(key, "link", l_link)
                     redisClient.hset(key, "content", content)
                     redisClient.expire(key, 28800)
-                    # Get matches and submit to mongodb
+                    # Get matches and submit to mongodb (Need to add peplink.com/estore link check)
                     path = urlparse(l_link).path
                     db = client.data
                     data = db.match
@@ -84,5 +86,6 @@ def get_all(global_Link_lst, keywords):
                     print('Data already existed')
 
             except WebDriverException:
+                key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
                 print(f'{key}, {l_link}: failed')
                 continue

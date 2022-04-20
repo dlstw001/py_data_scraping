@@ -8,7 +8,7 @@ import string # Reduce whitespaces
 from urllib.parse import urlparse # Get path
 import redis # Caching
 from pymongo import MongoClient # Main DB
-from multiprocessing import Pool # Multiprocessing
+import asyncio
 
 
 redisClient = redis.Redis(host='localhost', port=6379, db=0)
@@ -16,8 +16,8 @@ opts = webdriver.ChromeOptions()
 opts.add_argument("--disable-notifications, --headless")
 s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe') # Browser driver location
 
-global_link_lst = ["https://www.ctonet.mx/"]
-keywords = ['peplink','Peplink','SD-WAN','WIFI']
+global_link_lst = ["https://www.smartone.com/"]
+""" keywords = ['peplink','Peplink','SD-WAN','WIFI'] """
 
 driver = webdriver.Chrome(service=s, options=opts)
 cluster = "mongodb+srv://admin:admin@cluster0.zuec9.mongodb.net/test"
@@ -38,13 +38,13 @@ def get_all():
                 driver.get(l_link)
 
                 # Scroll down & Make soup
-                time.sleep(2)
+                time.sleep(3)
                 last_height = driver.execute_script("return document.body.scrollHeight")
                 while True:
                     # Scroll down to the bottom.
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                     # Wait to load the page.
-                    time.sleep(2)
+                    time.sleep(3)
                     # Get new scroll height and compare with last scroll height.
                     new_height = driver.execute_script("return document.body.scrollHeight")
                     if new_height == last_height:
@@ -61,7 +61,7 @@ def get_all():
                             (domain == doamin_check) and (link not in local_link_lst):
                         local_link_lst.append(link)
 
-                # Check repeated data
+                r""" # Check repeated data
                 key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
                 link_check = redisClient.hget(key, "link")
                 if link_check == None:
@@ -83,9 +83,11 @@ def get_all():
                     data.insert_one(match)
                     print('All data submitted')
                 else:
-                    print('Data already existed')
+                    print('Data already existed') """
 
             except WebDriverException:
                 key = f'link-{global_link_lst.index(g_link)}-{local_link_lst.index(l_link)}'
                 print(f'{key}, {l_link}: failed')
                 continue
+
+

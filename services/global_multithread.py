@@ -3,25 +3,20 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 from bs4 import BeautifulSoup
-import time # Set time interval
 import tldextract # Get domain
-import string # Reduce whitespaces
-from urllib.parse import urlparse # Get path
-import redis # Caching
-from pymongo import MongoClient # Main DB
-import asyncio
+import time
 
+url_lst = ["https://www.smartone.com/","https://eshop.hk.chinamobile.com/tc/index.html","https://www.cmi.chinamobile.com/","https://www.three.com.hk/"]
+count = 0
 
-g_link_list = ["https://www.smartone.com/", "https://www.cmi.chinamobile.com/","https://www.three.com.hk/","https://www.citictel.com/","https://eshop.hk.chinamobile.com/tc/index.html"]
-local_link_lst = []
-
-def get_link(g_link):
+def mainFunc(url):
+    count = count + 1
     opts = webdriver.ChromeOptions()
-    opts.add_argument("--disable-notifications, --headless")
+    opts.add_argument("--disable-notifications")
     s = Service(r'C:\Users\davidl\Desktop\py_data_scraping\driver\chromedriver.exe')
     driver = webdriver.Chrome(service=s, options=opts)
-    domain = tldextract.extract(g_link).domain
-    driver.get(g_link)
+    domain = tldextract.extract(url).domain
+    driver.get(url)
     # Scroll down & Make soup
     time.sleep(2)
     last_height = driver.execute_script("return document.body.scrollHeight")
@@ -29,7 +24,7 @@ def get_link(g_link):
         # Scroll down to the bottom.
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         # Wait to load the page.
-        time.sleep(3)
+        time.sleep(2)
         # Get new scroll height and compare with last scroll height.
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
@@ -41,18 +36,21 @@ def get_link(g_link):
     for element in soup.findAll('a', href=True):
         i_link = str(element.get('href'))
         doamin_check = tldextract.extract(i_link).domain
-        if (i_link.startswith('http://') or i_link.startswith('https://')) and \
-                (domain == doamin_check) and (i_link not in local_link_lst):
-            local_link_lst.append(i_link)
-    driver.close()
-    driver.quit()
+        if (i_link.startswith('http://') or i_link.startswith('https://')) and (i_link.endswith('.js') != True) and (domain == doamin_check) and (i_link not in url_lst):
+            url_lst.append(i_link)
+    
     
 
 if __name__ == '__main__':
-    executor = ThreadPoolExecutor(max_workers=2)
-    executor.map(get_link, g_link_list)
-    time.sleep(30)
-    print(local_link_lst)
+    executor = ThreadPoolExecutor(max_workers=5)
+    while len(url_lst) > 0:
+        executor.map(mainFunc, url_lst)
+        time.sleep(5)
+    print(count)
+
+
+
+
 
     
     

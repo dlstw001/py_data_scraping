@@ -34,7 +34,8 @@ def get_all():
 
         # Loop through local list
         for l_link in local_link_lst:
-            try:              
+            try:
+                              
                 driver.get(l_link)
 
                 # Scroll down & Make soup

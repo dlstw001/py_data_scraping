@@ -1,46 +1,33 @@
-from os import link
+from curses import meta
 import scrapy
 from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule
-from scrapy_playwright.page import PageMethod
-from bs4 import BeautifulSoup
 import tldextract
-
 
 class TestSpider(scrapy.Spider):
     name = 'test'
-    list = []
-    start_urls = ["https://www.smartone.com/"]
-
+    allowed_domains = []
+    start_urls = ['https://www.smartone.com/tc/home/']
+    keywords = []
+    backlink = []
+    links=[]
     for url in start_urls:
-        def start_requests(self):
-            yield scrapy.Request(
-                url= self.url,
-                meta={
-                    'playwright': True,
-                    'playwright_include_page': True,
-                },
-                errback=self.errback,            
-            )
+        allowed_domains.append(tldextract.extract(url).registered_domain)
 
-        
-        async def parse(self, response):
-            page = response.meta["playwright_page"]
-            domain = tldextract.extract(page.url).domain
-            content = await page.content()
-            soup = BeautifulSoup(content, 'lxml')
-            await page.close()
-            for element in soup.find_all('a'):
-                link = str(element.get('href'))
-                domain_check = tldextract.extract(link).domain
-                if (link.startswith('http://') or link.startswith('https://')) and (domain == domain_check) and (link not in self.list):
-                    self.list.append(link)
-                    yield response.follow(link, callback=self.parse)
-            print(list)
+    def start_requests(self):
+        for u in self.start_urls:
+            yield scrapy.Request(u, meta={"playwright": True})
 
-
-
-
-        async def errback(self, failure):
-            page = failure.request.meta["playwright_page"]
-            await page.close()
+    def parse(self, response):
+        all_links = response.xpath('*//a/@href').extract()
+        for link in all_links:
+            try:
+                domain = tldextract.extract(link).registered_domain
+            except:
+                domain = ''
+            if (link.startswith('http://') or link.startswith('https://')) and (domain in self.allowed_domains) and (link not in self.links):
+                    try:
+                        self.links.append(link)
+                        print(len(self.links))
+                        yield response.follow(link, callback=self.parse, meta={"playwright": True})
+                    except:
+                        print('error')
